@@ -3,7 +3,6 @@ package com.example.murtaza.walkietalkie;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -11,14 +10,14 @@ import android.widget.Button;
 
 import com.skyfishjy.library.RippleBackground;
 
-import java.net.Socket;
-
 public class ChatWindow extends AppCompatActivity {
     private static final String TAG = "ChatWindow";
     Button send_btn;
     private RippleBackground rippleBackground;
     private MicRecorder micRecorder;
     Thread t;
+
+    private boolean isButtonDown = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,12 +71,42 @@ public class ChatWindow extends AppCompatActivity {
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        int action = event.getAction();
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (event.getKeyCode() == 1015)
-            if (action == KeyEvent.ACTION_DOWN)
-                pushToTalk();
-        Log.d(TAG, "onKeyDown: code " + event.getKeyCode() + "Action:" + action);
+            if (isButtonDown)
+                if (send_btn.getText().toString().equals("OVER")) {
+                    send_btn.setText("TALK");
+                    if (micRecorder != null) {
+                        MicRecorder.keepRecording = false;
+                    }
+
+                    // stop animation
+                    rippleBackground.clearAnimation();
+                    rippleBackground.stopRippleAnimation();
+                }
+        isButtonDown = false;
+        return true;
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (event.getKeyCode() == 1015)
+            if (!isButtonDown)
+                if (send_btn.getText().toString().equals("TALK")) {
+                    // stream audio
+                    send_btn.setText("OVER");
+                    micRecorder = new MicRecorder();
+                    t = new Thread(micRecorder);
+                    if (micRecorder != null) {
+                        MicRecorder.keepRecording = true;
+                    }
+                    t.start();
+
+                    // start animation
+                    rippleBackground.startRippleAnimation();
+
+                }
+        isButtonDown = true;
         return true;
     }
 
